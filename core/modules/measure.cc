@@ -154,6 +154,10 @@ void Measure::Clear() {
 }
 
 static bool IsValidPercentiles(const std::vector<double> &percentiles) {
+  if (percentiles.empty()) {
+    return true;
+  }
+
   return std::is_sorted(percentiles.cbegin(), percentiles.cend()) &&
          *std::min_element(percentiles.cbegin(), percentiles.cend()) >= 0.0 &&
          *std::max_element(percentiles.cbegin(), percentiles.cend()) <= 100.0;
