@@ -369,13 +369,7 @@ static int sn_poll_action_batch(struct sn_queue *rx_queue, int budget)
 			rx_queue->rx.stats.bytes += skb->len;
 
 			ret = sn_process_rx_metadata(skb, &rx_meta[i]);
-			if (ret == 0) {
-				skb_record_rx_queue(skb, rx_queue->queue_id);
-				skb->protocol = eth_type_trans(skb, napi->dev);
-#ifdef CONFIG_NET_RX_BUSY_POLL
-				skb_mark_napi_id(skb, napi);
-#endif
-			} else {
+			if (ret != 0) {
 				dev_kfree_skb(skb);
 				skbs[i] = NULL;
 			}
@@ -383,10 +377,16 @@ static int sn_poll_action_batch(struct sn_queue *rx_queue, int budget)
 
 		if (!rx_queue->rx.opts.loopback) {
 			for (i = 0; i < cnt; i++) {
-				if (!skbs[i])
+				struct sk_buff *skb = skbs[i];
+				if (!skb)
 					continue;
 
-				netif_receive_skb(skbs[i]);
+				skb_record_rx_queue(skb, rx_queue->queue_id);
+				skb->protocol = eth_type_trans(skb, napi->dev);
+#ifdef CONFIG_NET_RX_BUSY_POLL
+				skb_mark_napi_id(skb, napi);
+#endif
+				netif_receive_skb(skb);
 			}
 		} else
 			sn_process_loopback(dev, skbs, cnt);
